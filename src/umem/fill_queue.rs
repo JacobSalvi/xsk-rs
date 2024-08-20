@@ -23,6 +23,27 @@ impl FillQueue {
         Self { ring, _umem: umem }
     }
 
+    /// Returns the prod reserve of this [`FillQueue`].
+    pub fn prod_reserve(&mut self) -> u32{
+        let mut idx = 0;
+        unsafe { libxdp_sys::xsk_ring_prod__reserve(self.ring.as_mut(), libxdp_sys::XSK_RING_PROD__DEFAULT_NUM_DESCS, &mut idx)}
+    }
+
+
+    /// .
+    pub fn fill_addr(&mut self, idx: u32, val: u64) {
+        unsafe{
+            *libxdp_sys::xsk_ring_prod__fill_addr(self.ring.as_mut(), idx) =val;
+        }
+    }
+
+    /// .
+    pub fn prod_submit(&mut self, v: u32){
+        unsafe{
+            libxdp_sys::xsk_ring_prod__submit(self.ring.as_mut(),v )
+        }
+    }
+
     /// Let the kernel know that the [`Umem`] frames described by
     /// `descs` may be used to receive data. Returns the number of
     /// frames submitted to the kernel.

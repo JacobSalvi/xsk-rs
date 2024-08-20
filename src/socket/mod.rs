@@ -56,16 +56,20 @@ unsafe impl Send for XskSocket {}
 #[derive(Debug)]
 struct SocketInner {
     // `ptr` must appear before `umem` to ensure correct drop order.
-    _ptr: XskSocket,
+    ptr: XskSocket,
     _umem: Umem,
 }
 
 impl SocketInner {
     fn new(ptr: XskSocket, umem: Umem) -> Self {
         Self {
-            _ptr: ptr,
+            ptr,
             _umem: umem,
         }
+    }
+
+    pub fn get_mut_ptr(&mut self) -> *mut libxdp_sys::xsk_socket{
+        self.ptr.0.as_ptr()
     }
 }
 
@@ -76,7 +80,7 @@ impl SocketInner {
 #[derive(Debug)]
 pub struct Socket {
     fd: Fd,
-    _inner: Arc<Mutex<SocketInner>>,
+    inner: Arc<Mutex<SocketInner>>,
 }
 
 impl Socket {
@@ -120,7 +124,7 @@ impl Socket {
         umem: &Umem,
         if_name: &Interface,
         queue_id: u32,
-    ) -> Result<(TxQueue, RxQueue, Option<(FillQueue, CompQueue)>), SocketCreateError> {
+    ) -> Result<(TxQueue, RxQueue, Option<(FillQueue, CompQueue)>, Self), SocketCreateError> {
         let mut socket_ptr = ptr::null_mut();
         let mut tx_q = XskRingProd::default();
         let mut rx_q = XskRingCons::default();
@@ -180,7 +184,7 @@ impl Socket {
 
         let socket = Socket {
             fd: Fd::new(fd),
-            _inner: Arc::new(Mutex::new(SocketInner::new(socket_ptr, umem.clone()))),
+            inner: Arc::new(Mutex::new(SocketInner::new(socket_ptr, umem.clone()))),
         };
 
         let tx_q = if tx_q.is_ring_null() {
@@ -198,7 +202,7 @@ impl Socket {
                 err: io::Error::from_raw_os_error(-err),
             });
         } else {
-            RxQueue::new(rx_q, socket)
+            RxQueue::new(rx_q, socket.clone())
         };
 
         let fq_and_cq = match (fq.is_ring_null(), cq.is_ring_null()) {
@@ -217,7 +221,26 @@ impl Socket {
             }
         };
 
-        Ok((tx_q, rx_q, fq_and_cq))
+
+        Ok((tx_q, rx_q, fq_and_cq, socket))
+    }
+
+    /// .
+    ///
+    /// # Panics
+    ///
+    /// Panics if .
+    pub fn update_xskmap(&mut self, xsk_map_fd: i32) -> Result<(), std::io::Error> {
+        unsafe{
+            let ptr = self.inner.lock().as_mut().unwrap().get_mut_ptr();
+            // let inner = self.inner.clone().get_mut()?;
+            
+            let ret = libxdp_sys::xsk_socket__update_xskmap(ptr, xsk_map_fd);
+            if ret != 0{
+                return Err(std::io::Error::new(std::io::ErrorKind::Other, "Couldn't update xsk_map"));
+            }
+            Ok(())
+        }
     }
 }
 
@@ -225,7 +248,7 @@ impl Clone for Socket {
     fn clone(&self) -> Self {
         Self {
             fd: self.fd.clone(),
-            _inner: self._inner.clone(),
+            inner: self.inner.clone(),
         }
     }
 }
