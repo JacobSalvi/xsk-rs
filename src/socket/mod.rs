@@ -11,11 +11,7 @@ pub use tx_queue::TxQueue;
 
 use libxdp_sys::xsk_socket;
 use std::{
-    borrow::Borrow,
-    error::Error,
-    fmt, io,
-    ptr::{self, NonNull},
-    sync::{Arc, Mutex},
+    borrow::Borrow, error::Error, fmt, io, os::fd::AsRawFd, ptr::{self, NonNull}, sync::{Arc, Mutex}
 };
 
 use crate::{
@@ -242,6 +238,12 @@ impl Socket {
             Ok(())
         }
     }
+
+    /// Returns the fd raw of this [`Socket`].
+    pub fn fd_raw(&self) -> i32{
+        self.fd.as_raw_fd()
+    }
+
 }
 
 impl Clone for Socket {
