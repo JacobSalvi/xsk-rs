@@ -78,11 +78,23 @@ impl FrameDesc {
         self.addr
     }
 
+    /// Sets the addr of this [`FrameDesc`].
+    #[inline]
+    pub fn set_addr(&mut self, addr: usize){
+        self.addr = addr;
+    }
+
     /// Current headroom and packet data lengths for the frame pointed
     /// at by this descriptor.
     #[inline]
     pub fn lengths(&self) -> &SegmentLengths {
         &self.lengths
+    }
+
+    /// Sets the length data of this [`FrameDesc`].
+    #[inline]
+    pub fn set_length_data(&mut self, len: usize){
+        self.lengths.data = len;
     }
 
     /// Frame options.
