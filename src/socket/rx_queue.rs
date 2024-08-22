@@ -160,9 +160,11 @@ impl RxQueue {
         &mut self.socket.fd
     }
 
+    /// Returns a reference to the get raw rx desc of this [`RxQueue`].
     #[inline]
-    pub fn get_raw_rx_desc(&self) -> &libxdp_sys::xsk_ring_cons{
-        self.ring.as_ref()
+    pub fn get_raw_rx_desc(&mut self, id: u32) -> *const libxdp_sys::xdp_desc{
+        let ring_cons = self.ring.as_mut();
+        unsafe{libxdp_sys::xsk_ring_cons__rx_desc(ring_cons, id)} 
     }
     
 }
