@@ -199,4 +199,11 @@ impl FillQueue {
     pub fn needs_wakeup(&self) -> bool {
         unsafe { libxdp_sys::xsk_ring_prod__needs_wakeup(self.ring.as_ref()) != 0 }
     }
+
+    #[inline]
+    pub fn nb_free(&mut self, nb: u32) -> u32{
+        unsafe{
+            return libxdp_sys::xsk_prod_nb_free(self.ring.as_mut(), nb);
+        }
+    }
 }

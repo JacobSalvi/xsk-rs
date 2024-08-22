@@ -159,4 +159,10 @@ impl RxQueue {
     pub fn fd_mut(&mut self) -> &mut Fd {
         &mut self.socket.fd
     }
+
+    #[inline]
+    pub fn get_raw_rx_desc(&self) -> &libxdp_sys::xsk_ring_cons{
+        self.ring.as_ref()
+    }
+    
 }
